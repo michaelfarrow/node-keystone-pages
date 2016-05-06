@@ -26,9 +26,10 @@ var Page = new keystone.List('Page', {
 });
 
 // Default templates, will be extended on init
-Page.templateFields = {
-  'Default': [],
-};
+Page.templateFields = _.defaults(
+  keystone.get('templates') || {},
+  { 'Default': [] }
+);
 
 // Global path cache
 Page.paths = {};

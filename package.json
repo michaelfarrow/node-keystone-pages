@@ -1,0 +1,18 @@
+{
+  "name": "keystone-pages",
+  "version": "0.1.0",
+  "description": "Page model and middleware for Keystone.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mike Farrow",
+  "license": "ISC",
+  "peerDependencies": {
+    "keystone": "~0.3.17"
+  },
+  "dependencies": {
+    "lodash": "4.2.0",
+    "async": "1.5.2"
+  }
+}

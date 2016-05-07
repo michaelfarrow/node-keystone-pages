@@ -82,6 +82,19 @@ Page.schema.pre('save', function(next) {
   }
 });
 
+// Custom validation
+Page.schema.pre('save', function(next) {
+  var functions = keystone.get('templates validation');
+
+  if(functions && functions[this.template]){
+    functions[this.template](function(err){
+      next(err ? Error(err) : null);
+    });
+  }else{
+    next();
+  }
+});
+
 /**
 VIRTUAL ACCESSORS
 */

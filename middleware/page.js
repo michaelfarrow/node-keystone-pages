@@ -7,25 +7,38 @@ var Page = keystone.list('Page');
 
 var getPageId = function(path){
   return function(callback){
+    var parts = _.without(path.split('/'), '');
     var pageId = Page.paths.byPath[path];
-    callback(pageId ? null : 'Could not find page id', pageId);
+    var full = true;
+
+    if(!pageId){
+      while(parts.length > 0 && !pageId){
+        parts.pop();
+        pageId = Page.paths.byPath['/' + parts.join('/') + '/'];
+        if(pageId) full = false;
+      }
+    }
+
+    callback(pageId ? null : 'Could not find page id', {
+      full: full,
+      id: pageId,
+    });
   };
 };
 
-var getPage = function(id, callback){
-  Page.model.findById(id, function(err, page){
-    callback(page ? null : 'Could not find page', page);
+var getPage = function(info, callback){
+  Page.model.findById(info.id, function(err, page){
+    info.page = page;
+    callback(page ? null : 'Could not find page', info);
   });
 };
 
-var getView = function(page, callback){
+var getView = function(info, callback){
   var views = importer('./views');
-  var viewSlug = keystone.utils.slug(page.template);
+  var viewSlug = keystone.utils.slug(info.page.template);
   var view = views[viewSlug];
-  callback(view ? null : 'Could not find view', {
-    page: page,
-    view: view,
-  });
+  info.view = view;
+  callback(view ? null : 'Could not find view', info);
 };
 
 exports = module.exports = function(req, res, next){
@@ -36,12 +49,17 @@ exports = module.exports = function(req, res, next){
     getPageId(path),
     getPage,
     getView,
-  ], function(err, data){
+  ], function(err, info){
     if(err){
       next();
     }else{
-      res.locals.page = data.page;
-      data.view(req, res, next);
+      res.locals.path = {
+        full: path,
+        parts: parts,
+      };
+      res.locals.page = info.page;
+      res.locals.pageFullMatch = info.full;
+      info.view(req, res, next);
     }
   });
 

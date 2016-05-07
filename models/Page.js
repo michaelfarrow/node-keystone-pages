@@ -227,7 +227,7 @@ Page.add({
   title: { type: Types.Text, required: true, initial: true },
   slug: { type: Types.Text, watch: true, value: Page.watch.updateSlug },
   parent: { type: Types.Relationship, ref: 'Page', initial: true },
-  template: { type: Types.Select, initial: true, options: _.keys(Page.templateFields), default: 'Default' },
+  template: { type: Types.Select, initial: true, options: _.keys(Page.templateFields).sort(), default: 'Default' },
 });
 
 /**
@@ -238,8 +238,11 @@ CUSTOM FIELDS
 // Fields are wrapped in an object with the template name as a key,
 // eliminating the need for unique field names.
 _.each(Page.templateFields, function(fields, template){
-  if(!_.isArray(fields))
+  if(_.isNull(fields) || _.keys(fields).length == 0){
+    fields = [];
+  }else if(!_.isArray(fields)){
     fields = [fields];
+  }
 
   if(fields.length > 0)
     Page.add(Page.processField(template, template));

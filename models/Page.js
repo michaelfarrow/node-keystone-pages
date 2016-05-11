@@ -87,7 +87,7 @@ Page.schema.pre('save', function(next) {
   var functions = keystone.get('templates validation');
 
   if(functions && functions[this.template]){
-    functions[this.template](function(err){
+    functions[this.template].bind(this)(function(err){
       next(err ? Error(err) : null);
     });
   }else{

@@ -223,11 +223,21 @@ Page.loadChildren = function(page, callback){
 COMMON FIELDS
 */
 
+Page.templateOptions = _.map(
+  _.keys(Page.templateFields).sort(),
+  function(option){
+    return {
+      label: option,
+      value: option,
+    };
+  }
+);
+
 Page.add({
   title: { type: Types.Text, required: true, initial: true },
   slug: { type: Types.Text, watch: true, value: Page.watch.updateSlug },
   parent: { type: Types.Relationship, ref: 'Page', initial: true },
-  template: { type: Types.Select, initial: true, options: _.keys(Page.templateFields).sort(), default: 'Default' },
+  template: { type: Types.Select, initial: true, options: Page.templateOptions, default: 'Default' },
 });
 
 /**

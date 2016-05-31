@@ -103,8 +103,8 @@ VIRTUAL ACCESSORS
 // Instead of accessing page.Home.headerImage, access page.fields.headerImage
 // Instead of accessing page._.Contact.shopAddress.format(), access page.fields._.shopAddress.format()
 Page.schema.virtual('fields').get(function(){
-  var fields = this[this.template];
-  fields._ = this._[this.template];
+  var fields = this[this.template] || {};
+  fields._ = this._[this.template] || {};
   return fields;
 });
 

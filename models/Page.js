@@ -15,15 +15,18 @@ LIST OPTIONS
 - drilldown as parent so you can see the parent page in the header
 */
 
-var Page = new keystone.List('Page', {
-  track: true,
-  map: { name: 'title' },
-  autokey: { from: 'title', path: 'slug', unique: false, fixed: true },
-  sortable: true,
-  sortContext: 'Page:children',
-  drilldown: 'parent',
-  defaultColumns: 'title, template, parent',
-});
+var Page = new keystone.List('Page', _.defaults(
+  keystone.get('templates options') || {},
+  {
+    track: true,
+    map: { name: 'title' },
+    autokey: { from: 'title', path: 'slug', unique: false, fixed: true },
+    sortable: true,
+    sortContext: 'Page:children',
+    drilldown: 'parent',
+    defaultColumns: 'title, template, parent',
+  }
+));
 
 // Default templates, will be extended on init
 Page.templateFields = _.defaults(
@@ -233,12 +236,14 @@ Page.templateOptions = _.map(
   }
 );
 
-Page.add({
-  title: { type: Types.Text, required: true, initial: true },
-  slug: { type: Types.Text, watch: true, value: Page.watch.updateSlug },
-  parent: { type: Types.Relationship, ref: 'Page', initial: true },
-  template: { type: Types.Select, initial: true, options: Page.templateOptions, default: 'Default' },
-});
+Page.add(.merge(
+  {
+    title: { type: Types.Text, required: true, initial: true },
+    slug: { type: Types.Text, watch: true, value: Page.watch.updateSlug },
+    parent: { type: Types.Relationship, ref: 'Page', initial: true },
+    template: { type: Types.Select, initial: true, options: Page.templateOptions, default: 'Default' },
+  }, keystone.get('templates global') || {}
+));
 
 /**
 CUSTOM FIELDS

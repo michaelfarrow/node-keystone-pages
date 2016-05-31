@@ -236,7 +236,7 @@ Page.templateOptions = _.map(
   }
 );
 
-Page.add(.merge(
+Page.add(_.merge(
   {
     title: { type: Types.Text, required: true, initial: true },
     slug: { type: Types.Text, watch: true, value: Page.watch.updateSlug },

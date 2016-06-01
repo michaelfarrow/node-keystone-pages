@@ -140,7 +140,7 @@ Page.processFieldGroup = function(fields, template){
   }
 
   if(fields.length > 0)
-    Page.add(Page.processField(template, template));
+    Page.add(Page.processField(keystone.utils.titlecase(template), template));
 
   _.each(fields, function(fieldGroup){
     fieldGroup = Page.processField(fieldGroup, template);

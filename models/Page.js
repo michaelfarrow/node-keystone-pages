@@ -31,7 +31,7 @@ var Page = new keystone.List('Page', _.defaults(
 // Default templates, will be extended on init
 Page.templateFields = _.defaults(
   keystone.get('templates') || {},
-  { 'Default': [] }
+  { 'default': [] }
 );
 
 // Global path cache
@@ -130,6 +130,32 @@ Page.schema.methods.getChildren = function(callback){
 LIST FUNCTIONS
 */
 
+Page.processFieldGroup = function(fields, template){
+  template = template.toLowerCase();
+
+  if(_.isNull(fields) || _.keys(fields).length == 0){
+    fields = [];
+  }else if(!_.isArray(fields)){
+    fields = [fields];
+  }
+
+  if(fields.length > 0)
+    Page.add(Page.processField(template, template));
+
+  _.each(fields, function(fieldGroup){
+    fieldGroup = Page.processField(fieldGroup, template);
+
+    var wrap = {};
+
+    if(!fieldGroup.heading)
+      wrap[template] = fieldGroup;
+    else
+      wrap = fieldGroup;
+
+    Page.add(wrap);
+  });
+};
+
 // Processes a single field object, adds dependsOn and label.
 // Will accept object of key, field pairs, heading as a string or heading as an object
 Page.processField = function(fieldGroup, template, parent){
@@ -223,14 +249,14 @@ Page.loadChildren = function(page, callback){
 };
 
 /**
-COMMON FIELDS
+COMMON FIELDS - HEADER
 */
 
 Page.templateOptions = _.map(
   _.keys(Page.templateFields).sort(),
   function(option){
     return {
-      label: option,
+      label: keystone.utils.titlecase(option),
       value: option,
     };
   }
@@ -241,7 +267,7 @@ Page.add(_.merge(
     title: { type: Types.Text, required: true, initial: true },
     slug: { type: Types.Text, watch: true, value: Page.watch.updateSlug },
     parent: { type: Types.Relationship, ref: 'Page', initial: true },
-    template: { type: Types.Select, initial: true, options: Page.templateOptions, default: 'Default' },
+    template: { type: Types.Select, initial: true, options: Page.templateOptions, default: 'default' },
   }, keystone.get('templates global') || {}
 ));
 
@@ -252,29 +278,14 @@ CUSTOM FIELDS
 // Loop through configured fields and add them to the model schema.
 // Fields are wrapped in an object with the template name as a key,
 // eliminating the need for unique field names.
-_.each(Page.templateFields, function(fields, template){
-  if(_.isNull(fields) || _.keys(fields).length == 0){
-    fields = [];
-  }else if(!_.isArray(fields)){
-    fields = [fields];
-  }
+_.each(Page.templateFields, Page.processFieldGroup);
 
-  if(fields.length > 0)
-    Page.add(Page.processField(template, template));
+/**
+COMMON FIELDS - FOOTER
+*/
 
-  _.each(fields, function(fieldGroup){
-    fieldGroup = Page.processField(fieldGroup, template);
-
-    var wrap = {};
-
-    if(!fieldGroup.heading)
-      wrap[template] = fieldGroup;
-    else
-      wrap = fieldGroup;
-
-    Page.add(wrap);
-  });
-});
+var footerFields = keystone.get('templates global footer') || {};
+Page.add.apply(Page, _.isArray(footerFields) ? footerFields : [footerFields]);
 
 /**
 RELATIONSHIP DEFINITIONS

@@ -16,7 +16,7 @@ LIST OPTIONS
 */
 
 var Page = new keystone.List('Page', _.defaults(
-  keystone.get('templates options') || {},
+  keystone.get('template options') || {},
   {
     track: true,
     map: { name: 'title' },
@@ -97,34 +97,6 @@ Page.schema.pre('save', function(next) {
     next();
   }
 });
-
-/**
-VIRTUAL ACCESSORS
-*/
-
-// Allows easy lookup of wrapped fields.
-// Instead of accessing page.Home.headerImage, access page.fields.headerImage
-// Instead of accessing page._.Contact.shopAddress.format(), access page.fields._.shopAddress.format()
-Page.schema.virtual('fields').get(function(){
-  var fields = this[this.template] || {};
-  fields._ = this._[this.template] || {};
-  return fields;
-});
-
-// Uses the path cache to return the full page of the page, parents included.
-Page.schema.virtual('path').get(function(){
-  var paths = Page.paths;
-  return paths.byPage[this._id] ? paths.byPage[this._id] : '/';
-});
-
-/**
-MODEL FUNCTIONS
-*/
-
-// Fetch children of model
-Page.schema.methods.getChildren = function(callback){
-  Page.loadChildren(this, callback);
-};
 
 /**
 LIST FUNCTIONS
@@ -248,6 +220,50 @@ Page.loadChildren = function(page, callback){
     });
 };
 
+// Check fields object to make sure paths/relationships don't exist, throw error if any do exist
+// Accepts an array of paths, which can be obtained using the Page.dotNotation function
+Page.checkPaths = function(paths, objName){
+  objName = objName ? objName : 'Path';
+  _.each(paths, function(path){
+    if(Page.schema.path(path) || Page.relationships[path] || _.has(Page.schema.tree, path))
+      throw Error(objName + ' "' + path + '" cannot be set, path already exists');
+  });
+};
+
+// Converts and object to dot notation, disired conditions provided by comparator function
+Page.dotNotation = function(obj, comparator){
+  comparator = comparator ? comparator : function(v){
+    return !_.isPlainObject(v);
+  };
+  if(_.isArray(obj)){
+    var newObj = {};
+    _.each(obj, function(group){
+      _.each(group, function(field, path){
+        newObj[path] = field;
+      });
+    });
+    obj = newObj;
+  }
+  var processObj = function(res, v, k){
+    if(comparator(v)){
+      res[k] = v;
+    }else if(_.isPlainObject(v)){
+      var newObj = _.transform(v, function(res, v, k2){
+        res[k + '.' + k2] = v;
+      });
+      _.assign(res, _.transform(newObj, processObj));
+    }
+  };
+
+  return _.transform(obj, processObj);
+};
+
+/**
+RELATIONSHIP DEFINITIONS
+*/
+
+Page.relationship({ label: 'Children', path: 'children', ref: 'Page', refPath: 'parent' });
+
 /**
 COMMON FIELDS - HEADER
 */
@@ -262,13 +278,14 @@ Page.templateOptions = _.map(
   }
 );
 
+Page.headerFields = keystone.get('templates global') || {};
 Page.add(_.merge(
   {
     title: { type: Types.Text, required: true, initial: true },
     slug: { type: Types.Text, watch: true, value: Page.watch.updateSlug },
     parent: { type: Types.Relationship, ref: 'Page', initial: true },
     template: { type: Types.Select, initial: true, options: Page.templateOptions, default: 'default' },
-  }, keystone.get('templates global') || {}
+  }, Page.headerFields
 ));
 
 /**
@@ -278,20 +295,92 @@ CUSTOM FIELDS
 // Loop through configured fields and add them to the model schema.
 // Fields are wrapped in an object with the template name as a key,
 // eliminating the need for unique field names.
+Page.checkPaths(_.keys(Page.templateFields), 'Template');
 _.each(Page.templateFields, Page.processFieldGroup);
 
 /**
 COMMON FIELDS - FOOTER
 */
 
-var footerFields = keystone.get('templates global footer') || {};
-Page.add.apply(Page, _.isArray(footerFields) ? footerFields : [footerFields]);
+Page.footerFields = keystone.get('templates global footer') || {};
+Page.footerFields = _.isArray(Page.footerFields) ? Page.footerFields : [Page.footerFields]
+var footerFieldsFilered = _.filter(Page.footerFields, function(v){
+  return !_.has(v, 'heading') && !_.isString(v);
+});
+var footerFieldsParsedAll = _.keys(Page.dotNotation(footerFieldsFilered, function(v){
+  return _.has(v, 'type');
+}));
+var footerFieldsParsedOneLevel = _.keys(Page.dotNotation(footerFieldsFilered, function(v){
+  return _.isPlainObject(v);
+}));
+Page.checkPaths(footerFieldsParsedAll, 'Footer path');
+Page.checkPaths(footerFieldsParsedOneLevel, 'Footer path');
+Page.add.apply(Page, Page.footerFields);
 
 /**
-RELATIONSHIP DEFINITIONS
+VIRTUAL ACCESSORS
 */
 
-Page.relationship({ label: 'Children', path: 'children', ref: 'Page', refPath: 'parent' });
+// Allows easy lookup of wrapped fields.
+// Instead of accessing page.Home.headerImage, access page.fields.headerImage
+// Instead of accessing page._.Contact.shopAddress.format(), access page.fields._.shopAddress.format()
+Page.schema.virtual('fields').get(function(){
+  var fields = this[this.template] || {};
+  fields._ = this._[this.template] || {};
+  return fields;
+});
+
+// Uses the path cache to return the full page of the page, parents included.
+Page.schema.virtual('path').get(function(){
+  var paths = Page.paths;
+  return paths.byPage[this._id] ? paths.byPage[this._id] : '/';
+});
+
+// Add custom virtual accessors
+// Accepts dot notation object of function values
+Page.virtuals = keystone.get('template virtuals');
+if(Page.virtuals){
+  Page.checkPaths(_.keys(Page.virtuals));
+  _.each(Page.virtuals, function(f, p){
+    Page.schema.virtual(p).get(f);
+  });
+}
+
+/**
+MODEL FUNCTIONS
+*/
+
+// Fetch children of model
+Page.schema.methods.getChildren = function(callback){
+  Page.loadChildren(this, callback);
+};
+
+// Add custom methods
+Page.methods = keystone.get('template methods');
+if(Page.methods){
+  var methods = Page.schema.methods;
+  Page.checkPaths(_.keys(Page.methods), 'Instance method');
+  _.each(Page.methods, function(f, p){
+    var name = keystone.utils.camelcase(p.replace('.', '_'), true);
+    // add method
+    methods[name] = f;
+    // add virtual so we can access it through fields virtual
+    Page.schema.virtual(p).get(function(){
+      return this[name].bind(this);
+    });
+  });
+}
+
+/**
+EXTRA CONFIGURATION
+Any other configuration not covered by the keystone.set options can be handled
+by¡ providing a function to keystone.set('templates custom', [function]).
+BEWARE! No checks are made so you better know what you're doing!
+*/
+var customConfigration = keystone.get('templates custom');
+if(_.isFunction(customConfigration)){
+  customConfigration(Page);
+}
 
 /**
 REGISTER MODEL & EXPORT

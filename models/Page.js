@@ -103,7 +103,6 @@ LIST FUNCTIONS
 */
 
 Page.processFieldGroup = function(fields, template){
-  template = template.toLowerCase();
 
   if(_.isNull(fields) || _.keys(fields).length == 0){
     fields = [];
@@ -269,7 +268,9 @@ COMMON FIELDS - HEADER
 */
 
 Page.templateOptions = _.map(
-  _.keys(Page.templateFields).sort(),
+  _.keys(Page.templateFields).sort(function (a, b) {
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  }),
   function(option){
     return {
       label: keystone.utils.titlecase(option),

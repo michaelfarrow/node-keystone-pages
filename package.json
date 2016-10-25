@@ -9,7 +9,7 @@
   "author": "Mike Farrow",
   "license": "ISC",
   "peerDependencies": {
-    "keystone": "~0.3.17"
+    "keystone": ">=0.3.17"
   },
   "dependencies": {
     "lodash": "4.2.0",

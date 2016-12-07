@@ -4,6 +4,28 @@ var async = require('async');
 var keystone = require('keystone');
 var importer = keystone.importer(process.cwd() + '/routes');
 var Page = keystone.list('Page');
+var fs = require('fs');
+
+var defaultView = function(slug) {
+  return function(req, res) {
+    var path = keystone.get('views');
+    var ext = keystone.get('view engine');
+
+    var templatePath = __dirname + '/../../../' + path + '/' + slug + '.' + ext;
+
+    fs.stat(templatePath, function(err, stat) {
+      if(err == null) {
+        var view = new keystone.View(req, res);
+        var locals = res.locals;
+        view.render(slug);
+      } else if(err.code == 'ENOENT') {
+        res.status(500).send('Could not find view');
+      } else {
+        res.status(500).send('Error: ' + err.code);
+      }
+    });
+  };
+};
 
 var getPageId = function(path){
   return function(callback){
@@ -37,8 +59,8 @@ var getView = function(info, callback){
   var views = importer('./views');
   var viewSlug = keystone.utils.slug(info.page.template);
   var view = views[viewSlug];
-  info.view = view;
-  callback(view ? null : 'Could not find view', info);
+  info.view = view ? view : defaultView(viewSlug);
+  callback(null, info);
 };
 
 exports = module.exports = function(req, res, next){

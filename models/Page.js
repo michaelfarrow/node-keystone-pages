@@ -34,6 +34,9 @@ Page.templateFields = _.defaults(
   { 'default': [] }
 );
 
+// Underscore methods
+Page._methods = {};
+
 // Global path cache
 Page.paths = {};
 
@@ -137,6 +140,10 @@ Page.processField = function(fieldGroup, template, parent){
       if(!field.type){
         field = Page.processField(field, template, path);
       }else{
+        var _methods = field._methods;
+        if(!Page._methods[template]) Page._methods[template] = {};
+        if(_methods && _.isObject(_methods))
+          Page._methods[template][path] = _methods;
         field.dependsOn = { template: template };
         if(!field.label)
           field.label = keystone.utils.keyToLabel(path);
@@ -326,8 +333,22 @@ VIRTUAL ACCESSORS
 // Instead of accessing page.Home.headerImage, access page.fields.headerImage
 // Instead of accessing page._.Contact.shopAddress.format(), access page.fields._.shopAddress.format()
 Page.schema.virtual('fields').get(function(){
+  var page = this;
   var fields = this[this.template] || {};
   fields._ = this._[this.template] || {};
+  var _methods = _.get(Page._methods, this.template);
+  if(_methods)
+    _.each(_methods, function(_methods, path) {
+      _.each(_methods, function(_method, funcName) {
+        _.set(
+          fields._,
+          [path, funcName].join('.'),
+          function() {
+            return _method.apply(page, [path, _.get(fields, path)]);
+          }
+        );
+      });
+    });
   return fields;
 });
 

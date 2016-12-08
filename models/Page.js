@@ -36,6 +36,7 @@ Page.templateFields = _.defaults(
 
 // Underscore methods
 Page._methods = {};
+Page._methodsGlobal = keystone.get('template _methods') || {};
 
 // Global path cache
 Page.paths = {};
@@ -140,10 +141,18 @@ Page.processField = function(fieldGroup, template, parent){
       if(!field.type){
         field = Page.processField(field, template, path);
       }else{
-        var _methods = field._methods;
-        if(!Page._methods[template]) Page._methods[template] = {};
-        if(_methods && _.isObject(_methods))
-          Page._methods[template][path] = _methods;
+        var _methods = {};
+        _.each(Page._methodsGlobal, function(_methodsGlobal, type) {
+          if(field.type == Types[type])
+            _methods = _methodsGlobal;
+        });
+
+        if(!Page._methods[template])
+          Page._methods[template] = {};
+        if(field._methods && _.isObject(field._methods));
+          _methods = _.defaults(_methods, field._methods);
+
+        Page._methods[template][path] = _methods;
         field.dependsOn = { template: template };
         if(!field.label)
           field.label = keystone.utils.keyToLabel(path);

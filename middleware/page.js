@@ -54,10 +54,17 @@ var getPage = function (info, callback) {
     if (err) return callback(err)
     if (!page) {
       Page.model.findById(info.id, function (err, page) {
-        info.page = page
-        cache.set(cacheId, page, function (err) {
+        if (err) return callback(err)
+        var modifier = _.get(Page.pageModifiers, _.get(page, 'template'), function (page, callback) {
+          callback(null, page)
+        })
+        modifier(page, function (err, page) {
           if (err) return callback(err)
-          callback(page ? null : 'Could not find page', info)
+          info.page = page
+          cache.set(cacheId, page, function (err) {
+            if (err) return callback(err)
+            callback(page ? null : 'Could not find page', info)
+          })
         })
       })
     } else {

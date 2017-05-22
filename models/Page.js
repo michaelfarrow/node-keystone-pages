@@ -41,6 +41,9 @@ Page._methodsGlobal = keystone.get('template _methods') || {}
 // Global path cache
 Page.paths = {}
 
+// Modify page after fetch, populate related models for example
+Page.pageModifiers = keystone.get('templates page modifiers')
+
 /**
 WATCH FUNCTIONS
 Update certain values in response to others updating.

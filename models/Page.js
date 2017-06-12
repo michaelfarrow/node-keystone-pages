@@ -187,7 +187,7 @@ Page.processField = function (fieldGroup, template, parent) {
 Page.getPathParts = function (pages, page) {
   var parts = [ page.slug ]
   if (page.parent) {
-    var parent = _.find(pages, { _id: page.parent })
+    var parent = _.find(pages, { id: page.parent.toString() })
     if (parent)
       parts = _.concat(Page.getPathParts(pages, parent), parts)
   }

@@ -1,6 +1,6 @@
 {
   "name": "keystone-pages",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "Page model and middleware for Keystone.js",
   "main": "index.js",
   "scripts": {

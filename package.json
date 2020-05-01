@@ -4,7 +4,9 @@
   "description": "Page model and middleware for Keystone.js",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "author": "Mike Farrow",
   "license": "ISC",
@@ -14,6 +16,8 @@
   "dependencies": {
     "lodash": "4.2.0",
     "async": "1.5.2",
-    "node-cache": "4.1.1"
-  }
+    "node-cache": "4.1.1",
+    "snyk": "^1.316.1"
+  },
+  "snyk": true
 }
